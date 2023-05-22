@@ -51,7 +51,7 @@ arm-objcopy -O binary blink.o blink.bin
 st-flash write 'blink.bin' 0x8000000
 ````
 ## configuracion del hardware
-el programa configura los pines A0-A4 como salidas estas nos serviran para representar nuestra variable con los LEDs  y A5-A6 como salidas pull-dpown para leer nuestros botones
+el programa configurá los pines A0-A4 como salidas estas nos serviran para representar nuestra variable con los LEDs  y A5-A6 como salidas pull-dpown para leer nuestros botones
 ````
 configure_pins:
     push    {r7}
@@ -69,8 +69,26 @@ configure_pins:
     pop	    {r7}
     bx	    lr
 ````
-la forma en la que se configuro el hardware dentro del protoboard es la siguiente:
+la forma en la que se configuró el hardware dentro del protoboard es la siguiente:
+
 NOTA: el recuadro amarillo representa la placa de desarrollo y las notas dentro de la imagen, los puertos a los que va conectado el hardware
 ![esquema](https://github.com/Dreyes-hash/Configuracion-de-puertos-GPIO/assets/126710580/539c5162-8b5f-428c-bdc9-d9c0f4158ad6)
+
+## funcionamiento general de la implementación
+Este código de ensamblador para STM32 utiliza el conjunto de instrucciones Thumb-2 para programar un microcontrolador Cortex-M3. A continuación, se proporciona una descripción de las funciones y el flujo del programa:
+
+1. La función `enable_clock` habilita el reloj para el puerto A. Guarda el estado de r7 en la pila y reserva espacio en la pila. Luego, carga la dirección del registro `RCC_APB2ENR` en r0 y la guarda en la pila. A continuación, carga el valor 0x04 en r3 para habilitar el reloj en el puerto A y lo guarda en la pila. Después, guarda el valor de r3 en la dirección de memoria apuntada por r0 y restaura el estado de la pila y r7.
+
+2. La función `configure_pins` configura los pines del puerto A. Al igual que `enable_clock`, guarda el estado de r7 en la pila y reserva espacio en la pila. Luego, carga la dirección del registro `GPIOA_CRL` en r0 y la guarda en la pila. A continuación, carga el valor 0x88833333 en r3 para configurar los pines PA0-PA4 como salidas y los pines PA5-PA6 como entradas con pull-down. Guarda el valor de r3 en la pila y en la dirección de memoria apuntada por r0. Luego, restaura el estado de la pila y r7.
+
+3. La función `set_led_output` establece la salida del LED. Al igual que las funciones anteriores, guarda el estado de r7 en la pila y reserva espacio en la pila. Luego, carga la dirección del registro `GPIOA_ODR` en r0 y la guarda en la pila. A continuación, carga el valor 0x1F en r2 como una máscara para establecer los bits de PA0-PA4. Guarda el valor de r2 en la pila y realiza una operación AND entre r1 y r2 para obtener los 5 bits menos significativos de la variable. Luego, guarda el valor de r3 en la pila y en la dirección de memoria apuntada por r0. Finalmente, restaura el estado de la pila y r7.
+
+4. La función `read_input` lee la entrada del GPIOA. Al igual que las funciones anteriores, guarda el estado de r7 en la pila y reserva espacio en la pila. Luego, carga la dirección del registro `GPIOA_IDR` en r0 y la guarda en la pila. Lee el valor del registro `GPIOA_IDR` y lo guarda en r3. Luego, guarda el valor de r3 en la pila y realiza una operación AND entre r3 y la máscara 0x60 para obtener solo los bits 5 y 6 (PA5-PA6). Guarda el valor resultante en la pila y, finalmente, restaura el estado de la pila y r7.
+
+5. La función `setup` llama a las funciones `enable_clock`, `configure_pins` y `set_led_output` en secuencia utilizando la instrucción `bl` (branch with link) para establecer la configuración inicial.
+
+6. El programa principal se encuentra en el bucle `loop`. Primero, hay un retardo utilizando un contador decrementado en el registro r2. Después del retardo, se llama a las funciones `set_led
+
+
 
 
